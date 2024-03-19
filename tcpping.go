@@ -46,7 +46,7 @@ func doClient() {
 			log.Fatal(err)
 		}
 		log.Println("wrote", n, "bytes")
-		n, err = conn.Read(buf)
+		n, err = io.ReadFull(conn, buf)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -62,27 +62,18 @@ func doServer() {
 	}
 	defer l.Close()
 	for {
-		// Wait for a connection.
 		conn, err := l.Accept()
 		if err != nil {
 			log.Fatal(err)
 		}
-		// Handle the connection in a new goroutine.
-		// The loop then returns to accepting, so that
-		// multiple connections may be served concurrently.
-		go func(c net.Conn) {
-			// Echo all incoming data.
-			io.Copy(c, c)
-			// Shut down the connection.
-			c.Close()
-		}(conn)
+		go handleConnection(conn)
 	}
 }
 
 func handleConnection(c net.Conn) {
 	buf := make([]byte, *sz)
 	for {
-		n, err := c.Read(buf)
+		n, err := io.ReadFull(c, buf)
 		if err != nil {
 			log.Fatal(err)
 		}
